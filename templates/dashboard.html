@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Adaptive Firewall</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-family:Arial;padding:20px;margin:0}
+        h1{text-align:center;font-size:2.8em;margin-bottom:10px}
+        .badge{text-align:center;background:rgba(255,255,255,.2);padding:10px 20px;border-radius:30px;display:inline-block;margin:0 auto 30px;display:block;width:fit-content}
+        .pulse{display:inline-block;width:10px;height:10px;background:#0f0;border-radius:50%;margin-right:10px;animation:p 2s infinite}
+        @keyframes p{0%,100%{opacity:1}50%{opacity:.3}}
+        .s{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:30px 0}
+        .c{background:rgba(255,255,255,.2);padding:30px;border-radius:15px;text-align:center;backdrop-filter:blur(10px)}
+        .b{font-size:3.5em;font-weight:bold;margin:10px 0}
+        .ch{background:rgba(255,255,255,.2);padding:30px;border-radius:15px;max-width:600px;margin:20px auto;backdrop-filter:blur(10px)}
+        .l{background:rgba(255,255,255,.2);padding:20px;border-radius:15px;max-height:250px;overflow-y:auto;backdrop-filter:blur(10px)}
+        .e{background:rgba(0,0,0,.3);padding:10px;margin:5px 0;border-radius:5px;font-size:.85em;font-family:monospace}
+    </style>
+</head>
+<body>
+    <h1>🛡️ Adaptive Firewall Dashboard</h1>
+    <div class="badge"><span class="pulse"></span>Live Monitoring - Auto-refresh every 2s</div>
+    
+    <div class="s">
+        <div class="c"><div style="font-size:1.1em;opacity:.9">📦 Packets Blocked</div><div class="b" id="p">0</div></div>
+        <div class="c"><div style="font-size:1.1em;opacity:.9">🚫 Threats Detected</div><div class="b" id="t">0</div></div>
+        <div class="c"><div style="font-size:1.1em;opacity:.9">🔒 Active Rules</div><div class="b" id="r">0</div></div>
+    </div>
+    
+    <div class="ch">
+        <h2 style="text-align:center;margin-bottom:20px">Attack Types Distribution</h2>
+        <canvas id="ch"></canvas>
+    </div>
+    
+    <div class="l">
+        <h2>Recent Attack Logs</h2>
+        <div id="lg">No attacks detected yet...</div>
+    </div>
+    
+    <script>
+        let c=new Chart(document.getElementById('ch'),{
+            type:'doughnut',
+            data:{
+                labels:['Port Scan','DDoS','Brute Force'],
+                datasets:[{data:[0,0,0],backgroundColor:['#ff6b6b','#ffa502','#ffd93d'],borderWidth:0}]
+            },
+            options:{
+                responsive:true,
+                plugins:{legend:{labels:{color:'#fff',font:{size:16}}}}
+            }
+        });
+        
+        async function u(){
+            try{
+                let d=await(await fetch('/api/data')).json();
+                console.log('Data received:', d);
+                
+                document.getElementById('p').textContent=d.packets;
+                document.getElementById('t').textContent=d.threats;
+                document.getElementById('r').textContent=d.rules;
+                
+                c.data.datasets[0].data=[d.ps,d.dd,d.bf];
+                c.update();
+                
+                let lg=document.getElementById('lg');
+                if(d.logs.length>0){
+                    lg.innerHTML=d.logs.reverse().map(a=>'<div class="e">'+a+'</div>').join('');
+                }else{
+                    lg.innerHTML='<p style="text-align:center;opacity:.7">No attacks detected yet...</p>';
+                }
+            }catch(e){
+                console.error('Error:',e);
+            }
+        }
+        
+        setInterval(u,2000);
+        u();
+    </script>
+</body>
+</html>
